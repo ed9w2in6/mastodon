@@ -56,6 +56,8 @@ class UnsuspendAccountService < BaseService
         attachment = media_attachment.public_send(attachment_name)
         styles     = [:original] | attachment.styles.keys
 
+        next if attachment.blank?
+
         styles.each do |style|
           case Paperclip::Attachment.default_options[:storage]
           when :s3
@@ -69,6 +71,8 @@ class UnsuspendAccountService < BaseService
               Rails.logger.warn "Tried to change permission on non-existent file #{attachment.path(style)}"
             end
           end
+
+          CacheBusterWorker.perform_async(attachment.path(style)) if Rails.configuration.x.cache_buster_enabled
         end
       end
     end
