@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe Api::V1::BlocksController, type: :controller do
   render_views
 
-  let(:user)   { Fabricate(:user, account: Fabricate(:account, username: 'alice')) }
+  let(:user)   { Fabricate(:user) }
   let(:scopes) { 'read:blocks' }
   let(:token)  { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
 
@@ -37,13 +39,13 @@ RSpec.describe Api::V1::BlocksController, type: :controller do
     it 'sets pagination header for next path' do
       blocks = 2.times.map { Fabricate(:block, account: user.account) }
       get :index, params: { limit: 1, since_id: blocks[0] }
-      expect(response.headers['Link'].find_link(['rel', 'next']).href).to eq api_v1_blocks_url(limit: 1, max_id: blocks[1])
+      expect(response.headers['Link'].find_link(%w(rel next)).href).to eq api_v1_blocks_url(limit: 1, max_id: blocks[1])
     end
 
     it 'sets pagination header for previous path' do
       block = Fabricate(:block, account: user.account)
       get :index
-      expect(response.headers['Link'].find_link(['rel', 'prev']).href).to eq api_v1_blocks_url(since_id: block)
+      expect(response.headers['Link'].find_link(%w(rel prev)).href).to eq api_v1_blocks_url(since_id: block)
     end
 
     it 'returns http success' do

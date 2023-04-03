@@ -16,6 +16,8 @@ class ApplicationController < ActionController::Base
   helper_method :current_theme
   helper_method :single_user_mode?
   helper_method :use_seamless_external_login?
+  helper_method :omniauth_only?
+  helper_method :sso_account_settings
   helper_method :whitelist_mode?
 
   rescue_from ActionController::ParameterMissing, Paperclip::AdapterRegistry::NoHandlerError, with: :bad_request
@@ -56,20 +58,16 @@ class ApplicationController < ActionController::Base
     store_location_for(:user, request.url) unless [:json, :rss].include?(request.format&.to_sym)
   end
 
-  def require_admin!
-    forbidden unless current_user&.admin?
-  end
-
-  def require_staff!
-    forbidden unless current_user&.staff?
-  end
-
   def require_functional!
     redirect_to edit_user_registration_path unless current_user.functional?
   end
 
   def after_sign_out_path_for(_resource_or_scope)
-    new_user_session_path
+    if ENV['OMNIAUTH_ONLY'] == 'true' && ENV['OIDC_ENABLED'] == 'true'
+      '/auth/auth/openid_connect/logout'
+    else
+      new_user_session_path
+    end
   end
 
   protected
@@ -122,6 +120,14 @@ class ApplicationController < ActionController::Base
     Devise.pam_authentication || Devise.ldap_authentication
   end
 
+  def omniauth_only?
+    ENV['OMNIAUTH_ONLY'] == 'true'
+  end
+
+  def sso_account_settings
+    ENV.fetch('SSO_ACCOUNT_SETTINGS')
+  end
+
   def current_account
     return @current_account if defined?(@current_account)
 
@@ -136,6 +142,7 @@ class ApplicationController < ActionController::Base
 
   def current_theme
     return Setting.theme unless Themes.instance.names.include? current_user&.setting_theme
+
     current_user.setting_theme
   end
 

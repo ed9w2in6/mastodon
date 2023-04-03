@@ -27,8 +27,8 @@ describe ApplicationController, type: :controller do
       expect(response).to have_http_status(code)
     end
 
-    it "renders template for http" do
-      is_expected.to render_template("errors/#{code}", layout: 'error')
+    it 'renders template for http' do
+      expect(subject).to render_template("errors/#{code}", layout: 'error')
     end
   end
 
@@ -49,7 +49,7 @@ describe ApplicationController, type: :controller do
 
     it 'returns account if signed in' do
       account = Fabricate(:account)
-      sign_in(Fabricate(:user, account: account))
+      sign_in(account.user)
       expect(controller.view_context.current_account).to eq account
     end
   end
@@ -57,19 +57,19 @@ describe ApplicationController, type: :controller do
   describe 'helper_method :single_user_mode?' do
     it 'returns false if it is in single_user_mode but there is no account' do
       allow(Rails.configuration.x).to receive(:single_user_mode).and_return(true)
-      expect(controller.view_context.single_user_mode?).to eq false
+      expect(controller.view_context.single_user_mode?).to be false
     end
 
     it 'returns false if there is an account but it is not in single_user_mode' do
       allow(Rails.configuration.x).to receive(:single_user_mode).and_return(false)
       Fabricate(:account)
-      expect(controller.view_context.single_user_mode?).to eq false
+      expect(controller.view_context.single_user_mode?).to be false
     end
 
     it 'returns true if it is in single_user_mode and there is an account' do
       allow(Rails.configuration.x).to receive(:single_user_mode).and_return(true)
       Fabricate(:account)
-      expect(controller.view_context.single_user_mode?).to eq true
+      expect(controller.view_context.single_user_mode?).to be true
     end
   end
 
@@ -88,20 +88,18 @@ describe ApplicationController, type: :controller do
 
     it 'returns instances\'s default theme when user didn\'t set theme' do
       current_user = Fabricate(:user)
+      current_user.settings.update(theme: 'contrast', noindex: false)
+      current_user.save
       sign_in current_user
-
-      allow(Setting).to receive(:[]).with('theme').and_return 'contrast'
-      allow(Setting).to receive(:[]).with('noindex').and_return false
 
       expect(controller.view_context.current_theme).to eq 'contrast'
     end
 
     it 'returns user\'s theme when it is set' do
       current_user = Fabricate(:user)
-      current_user.settings['theme'] = 'mastodon-light'
+      current_user.settings.update(theme: 'mastodon-light')
+      current_user.save
       sign_in current_user
-
-      allow(Setting).to receive(:[]).with('theme').and_return 'contrast'
 
       expect(controller.view_context.current_theme).to eq 'mastodon-light'
     end
@@ -146,7 +144,7 @@ describe ApplicationController, type: :controller do
       end
 
       it 'does not store location for user if it is devise controller' do
-        @request.env["devise.mapping"] = Devise.mappings[:user]
+        @request.env['devise.mapping'] = Devise.mappings[:user]
         get 'create'
         expect(controller.stored_location_for(:user)).to be_nil
       end
@@ -164,13 +162,13 @@ describe ApplicationController, type: :controller do
     end
 
     it 'does nothing if user who signed in is not suspended' do
-      sign_in(Fabricate(:user, account: Fabricate(:account, suspended: false)))
+      sign_in(Fabricate(:account, suspended: false).user)
       get 'success'
       expect(response).to have_http_status(200)
     end
 
     it 'redirects to account status page' do
-      sign_in(Fabricate(:user, account: Fabricate(:account, suspended: true)))
+      sign_in(Fabricate(:account, suspended: true).user)
       get 'success'
       expect(response).to redirect_to(edit_user_registration_path)
     end
@@ -180,70 +178,6 @@ describe ApplicationController, type: :controller do
     it 'raises error' do
       controller.params[:unmatched_route] = 'unmatched'
       expect { controller.raise_not_found }.to raise_error(ActionController::RoutingError, 'No route matches unmatched')
-    end
-  end
-
-  describe 'require_admin!' do
-    controller do
-      before_action :require_admin!
-
-      def sucesss
-        head 200
-      end
-    end
-
-    before do
-      routes.draw { get 'sucesss' => 'anonymous#sucesss' }
-    end
-
-    it 'returns a 403 if current user is not admin' do
-      sign_in(Fabricate(:user, admin: false))
-      get 'sucesss'
-      expect(response).to have_http_status(403)
-    end
-
-    it 'returns a 403 if current user is only a moderator' do
-      sign_in(Fabricate(:user, moderator: true))
-      get 'sucesss'
-      expect(response).to have_http_status(403)
-    end
-
-    it 'does nothing if current user is admin' do
-      sign_in(Fabricate(:user, admin: true))
-      get 'sucesss'
-      expect(response).to have_http_status(200)
-    end
-  end
-
-  describe 'require_staff!' do
-    controller do
-      before_action :require_staff!
-
-      def sucesss
-        head 200
-      end
-    end
-
-    before do
-      routes.draw { get 'sucesss' => 'anonymous#sucesss' }
-    end
-
-    it 'returns a 403 if current user is not admin or moderator' do
-      sign_in(Fabricate(:user, admin: false, moderator: false))
-      get 'sucesss'
-      expect(response).to have_http_status(403)
-    end
-
-    it 'does nothing if current user is moderator' do
-      sign_in(Fabricate(:user, moderator: true))
-      get 'sucesss'
-      expect(response).to have_http_status(200)
-    end
-
-    it 'does nothing if current user is admin' do
-      sign_in(Fabricate(:user, admin: true))
-      get 'sucesss'
-      expect(response).to have_http_status(200)
     end
   end
 

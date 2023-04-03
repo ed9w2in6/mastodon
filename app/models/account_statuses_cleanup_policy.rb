@@ -4,8 +4,8 @@
 #
 # Table name: account_statuses_cleanup_policies
 #
-#  id                 :bigint           not null, primary key
-#  account_id         :bigint           not null
+#  id                 :bigint(8)        not null, primary key
+#  account_id         :bigint(8)        not null
 #  enabled            :boolean          default(TRUE), not null
 #  min_status_age     :integer          default(1209600), not null
 #  keep_direct        :boolean          default(TRUE), not null
@@ -23,6 +23,7 @@ class AccountStatusesCleanupPolicy < ApplicationRecord
   include Redisable
 
   ALLOWED_MIN_STATUS_AGE = [
+    1.week.seconds,
     2.weeks.seconds,
     1.month.seconds,
     2.months.seconds,
@@ -121,9 +122,7 @@ class AccountStatusesCleanupPolicy < ApplicationRecord
       # may need to be deleted, so we'll have to start again.
       redis.del("account_cleanup:#{account.id}")
     end
-    if EXCEPTION_THRESHOLDS.map { |name| attribute_change_to_be_saved(name) }.compact.any? { |old, new| old.present? && (new.nil? || new > old) }
-      redis.del("account_cleanup:#{account.id}")
-    end
+    redis.del("account_cleanup:#{account.id}") if EXCEPTION_THRESHOLDS.map { |name| attribute_change_to_be_saved(name) }.compact.any? { |old, new| old.present? && (new.nil? || new > old) }
   end
 
   def validate_local_account
@@ -138,7 +137,10 @@ class AccountStatusesCleanupPolicy < ApplicationRecord
     # Filtering on `id` rather than `min_status_age` ago will treat
     # non-snowflake statuses as older than they really are, but Mastodon
     # has switched to snowflake IDs significantly over 2 years ago anyway.
-    max_id = [max_id, Mastodon::Snowflake.id_at(min_status_age.seconds.ago, with_random: false)].compact.min
+    snowflake_id = Mastodon::Snowflake.id_at(min_status_age.seconds.ago, with_random: false)
+
+    max_id = snowflake_id if max_id.nil? || snowflake_id < max_id
+
     Status.where(Status.arel_table[:id].lteq(max_id))
   end
 
@@ -164,8 +166,8 @@ class AccountStatusesCleanupPolicy < ApplicationRecord
 
   def without_popular_scope
     scope = Status.left_joins(:status_stat)
-    scope = scope.where('COALESCE(status_stats.reblogs_count, 0) <= ?', min_reblogs) unless min_reblogs.nil?
-    scope = scope.where('COALESCE(status_stats.favourites_count, 0) <= ?', min_favs) unless min_favs.nil?
+    scope = scope.where('COALESCE(status_stats.reblogs_count, 0) < ?', min_reblogs) unless min_reblogs.nil?
+    scope = scope.where('COALESCE(status_stats.favourites_count, 0) < ?', min_favs) unless min_favs.nil?
     scope
   end
 end

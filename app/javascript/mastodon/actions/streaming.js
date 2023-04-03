@@ -7,16 +7,20 @@ import {
   expandHomeTimeline,
   connectTimeline,
   disconnectTimeline,
+  fillHomeTimelineGaps,
+  fillPublicTimelineGaps,
+  fillCommunityTimelineGaps,
+  fillListTimelineGaps,
 } from './timelines';
 import { updateNotifications, expandNotifications } from './notifications';
 import { updateConversations } from './conversations';
+import { updateStatus } from './statuses';
 import {
   fetchAnnouncements,
   updateAnnouncements,
   updateReaction as updateAnnouncementsReaction,
   deleteAnnouncement,
 } from './announcements';
-import { fetchFilters } from './filters';
 import { getLocale } from '../locales';
 
 const { messages } = getLocale();
@@ -34,6 +38,7 @@ const randomUpTo = max =>
  * @param {Object.<string, string>} params
  * @param {Object} options
  * @param {function(Function, Function): void} [options.fallback]
+ * @param {function(): void} [options.fillGaps]
  * @param {function(object): boolean} [options.accept]
  * @return {function(): void}
  */
@@ -41,6 +46,7 @@ export const connectTimelineStream = (timelineId, channelName, params = {}, opti
   connectStream(channelName, params, (dispatch, getState) => {
     const locale = getState().getIn(['meta', 'locale']);
 
+    // @ts-expect-error
     let pollingId;
 
     /**
@@ -56,9 +62,14 @@ export const connectTimelineStream = (timelineId, channelName, params = {}, opti
       onConnect() {
         dispatch(connectTimeline(timelineId));
 
+        // @ts-expect-error
         if (pollingId) {
-          clearTimeout(pollingId);
-          pollingId = null;
+          // @ts-ignore
+          clearTimeout(pollingId); pollingId = null;
+        }
+
+        if (options.fillGaps) {
+          dispatch(options.fillGaps());
         }
       },
 
@@ -66,31 +77,38 @@ export const connectTimelineStream = (timelineId, channelName, params = {}, opti
         dispatch(disconnectTimeline(timelineId));
 
         if (options.fallback) {
+          // @ts-expect-error
           pollingId = setTimeout(() => useFallback(options.fallback), randomUpTo(40000));
         }
       },
 
-      onReceive (data) {
-        switch(data.event) {
+      onReceive(data) {
+        switch (data.event) {
         case 'update':
+          // @ts-expect-error
           dispatch(updateTimeline(timelineId, JSON.parse(data.payload), options.accept));
+          break;
+        case 'status.update':
+          // @ts-expect-error
+          dispatch(updateStatus(JSON.parse(data.payload)));
           break;
         case 'delete':
           dispatch(deleteFromTimelines(data.payload));
           break;
         case 'notification':
+          // @ts-expect-error
           dispatch(updateNotifications(JSON.parse(data.payload), messages, locale));
           break;
         case 'conversation':
+          // @ts-expect-error
           dispatch(updateConversations(JSON.parse(data.payload)));
           break;
-        case 'filters_changed':
-          dispatch(fetchFilters());
-          break;
         case 'announcement':
+          // @ts-expect-error
           dispatch(updateAnnouncements(JSON.parse(data.payload)));
           break;
         case 'announcement.reaction':
+          // @ts-expect-error
           dispatch(updateAnnouncementsReaction(JSON.parse(data.payload)));
           break;
         case 'announcement.delete':
@@ -106,7 +124,9 @@ export const connectTimelineStream = (timelineId, channelName, params = {}, opti
  * @param {function(): void} done
  */
 const refreshHomeTimelineAndNotification = (dispatch, done) => {
+  // @ts-expect-error
   dispatch(expandHomeTimeline({}, () =>
+    // @ts-expect-error
     dispatch(expandNotifications({}, () =>
       dispatch(fetchAnnouncements(done))))));
 };
@@ -115,7 +135,8 @@ const refreshHomeTimelineAndNotification = (dispatch, done) => {
  * @return {function(): void}
  */
 export const connectUserStream = () =>
-  connectTimelineStream('home', 'user', {}, { fallback: refreshHomeTimelineAndNotification });
+  // @ts-expect-error
+  connectTimelineStream('home', 'user', {}, { fallback: refreshHomeTimelineAndNotification, fillGaps: fillHomeTimelineGaps });
 
 /**
  * @param {Object} options
@@ -123,7 +144,7 @@ export const connectUserStream = () =>
  * @return {function(): void}
  */
 export const connectCommunityStream = ({ onlyMedia } = {}) =>
-  connectTimelineStream(`community${onlyMedia ? ':media' : ''}`, `public:local${onlyMedia ? ':media' : ''}`);
+  connectTimelineStream(`community${onlyMedia ? ':media' : ''}`, `public:local${onlyMedia ? ':media' : ''}`, {}, { fillGaps: () => (fillCommunityTimelineGaps({ onlyMedia })) });
 
 /**
  * @param {Object} options
@@ -132,7 +153,7 @@ export const connectCommunityStream = ({ onlyMedia } = {}) =>
  * @return {function(): void}
  */
 export const connectPublicStream = ({ onlyMedia, onlyRemote } = {}) =>
-  connectTimelineStream(`public${onlyRemote ? ':remote' : ''}${onlyMedia ? ':media' : ''}`, `public${onlyRemote ? ':remote' : ''}${onlyMedia ? ':media' : ''}`);
+  connectTimelineStream(`public${onlyRemote ? ':remote' : ''}${onlyMedia ? ':media' : ''}`, `public${onlyRemote ? ':remote' : ''}${onlyMedia ? ':media' : ''}`, {}, { fillGaps: () => fillPublicTimelineGaps({ onlyMedia, onlyRemote }) });
 
 /**
  * @param {string} columnId
@@ -155,4 +176,4 @@ export const connectDirectStream = () =>
  * @return {function(): void}
  */
 export const connectListStream = listId =>
-  connectTimelineStream(`list:${listId}`, 'list', { list: listId });
+  connectTimelineStream(`list:${listId}`, 'list', { list: listId }, { fillGaps: () => fillListTimelineGaps(listId) });

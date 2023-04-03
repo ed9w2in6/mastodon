@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 describe FollowerAccountsController do
   render_views
 
-  let(:alice) { Fabricate(:user).account }
+  let(:alice) { Fabricate(:account) }
   let(:follower0) { Fabricate(:account) }
   let(:follower1) { Fabricate(:account) }
 
@@ -34,31 +36,11 @@ describe FollowerAccountsController do
           expect(response).to have_http_status(403)
         end
       end
-
-      it 'assigns follows' do
-        expect(response).to have_http_status(200)
-
-        assigned = assigns(:follows).to_a
-        expect(assigned.size).to eq 2
-        expect(assigned[0]).to eq follow1
-        expect(assigned[1]).to eq follow0
-      end
-
-      it 'does not assign blocked users' do
-        user = Fabricate(:user)
-        user.account.block!(follower0)
-        sign_in(user)
-
-        expect(response).to have_http_status(200)
-
-        assigned = assigns(:follows).to_a
-        expect(assigned.size).to eq 1
-        expect(assigned[0]).to eq follow1
-      end
     end
 
     context 'when format is json' do
       subject(:response) { get :index, params: { account_username: alice.username, page: page, format: :json } }
+
       subject(:body) { JSON.parse(response.body) }
 
       context 'with page' do
@@ -103,7 +85,7 @@ describe FollowerAccountsController do
 
         context 'when account hides their network' do
           before do
-            alice.user.settings.hide_network = true
+            alice.update(hide_collections: true)
           end
 
           it 'returns followers count' do

@@ -5,10 +5,10 @@ require 'pundit/rspec'
 
 RSpec.describe SettingsPolicy do
   let(:subject) { described_class }
-  let(:admin)   { Fabricate(:user, admin: true).account }
-  let(:john)    { Fabricate(:user).account }
+  let(:admin)   { Fabricate(:user, role: UserRole.find_by(name: 'Admin')).account }
+  let(:john)    { Fabricate(:account) }
 
-  permissions :update?, :show? do
+  permissions :update?, :show?, :destroy? do
     context 'admin?' do
       it 'permits' do
         expect(subject).to permit(admin, Settings)

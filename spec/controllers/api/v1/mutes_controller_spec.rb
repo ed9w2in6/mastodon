@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe Api::V1::MutesController, type: :controller do
   render_views
 
-  let(:user)   { Fabricate(:user, account: Fabricate(:account, username: 'alice')) }
+  let(:user)   { Fabricate(:user) }
   let(:scopes) { 'read:mutes' }
   let(:token)  { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
 
@@ -37,13 +39,13 @@ RSpec.describe Api::V1::MutesController, type: :controller do
     it 'sets pagination header for next path' do
       mutes = 2.times.map { Fabricate(:mute, account: user.account) }
       get :index, params: { limit: 1, since_id: mutes[0] }
-      expect(response.headers['Link'].find_link(['rel', 'next']).href).to eq api_v1_mutes_url(limit: 1, max_id: mutes[1])
+      expect(response.headers['Link'].find_link(%w(rel next)).href).to eq api_v1_mutes_url(limit: 1, max_id: mutes[1])
     end
 
     it 'sets pagination header for previous path' do
       mute = Fabricate(:mute, account: user.account)
       get :index
-      expect(response.headers['Link'].find_link(['rel', 'prev']).href).to eq api_v1_mutes_url(since_id: mute)
+      expect(response.headers['Link'].find_link(%w(rel prev)).href).to eq api_v1_mutes_url(since_id: mute)
     end
 
     it 'returns http success' do
