@@ -1,10 +1,10 @@
-import * as React from 'react';
 import classNames from 'classnames';
-import { autoPlayGif } from '../initial_state';
+
 import { useHovering } from '../../hooks/useHovering';
 import type { Account } from '../../types/resources';
+import { autoPlayGif } from '../initial_state';
 
-type Props = {
+interface Props {
   account: Account;
   size: number;
   style?: React.CSSProperties;
@@ -19,7 +19,6 @@ export const Avatar: React.FC<Props> = ({
   inline = false,
   style: styleFromParent,
 }) => {
-
   const { hovering, handleMouseEnter, handleMouseLeave } = useHovering(animate);
 
   const style = {
@@ -28,13 +27,21 @@ export const Avatar: React.FC<Props> = ({
     height: `${size}px`,
   };
 
-  const src = (hovering || animate) ? account?.get('avatar') : account?.get('avatar_static');
+  const src =
+    hovering || animate
+      ? account?.get('avatar')
+      : account?.get('avatar_static');
 
   return (
-    <div className={classNames('account__avatar', { 'account__avatar-inline': inline })} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} style={style}>
+    <div
+      className={classNames('account__avatar', {
+        'account__avatar-inline': inline,
+      })}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={style}
+    >
       {src && <img src={src} alt={account?.get('acct')} />}
     </div>
   );
 };
-
-export default Avatar;
