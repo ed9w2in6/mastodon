@@ -718,7 +718,6 @@ sco:
           approved: Approval needit fir sign up
           none: Naebody kin sign up
           open: Oniebody kin sign up
-      title: Server Settins
     site_uploads:
       delete: Delete uploadit file
       destroyed_msg: Site upload successfully deletit!
@@ -843,7 +842,6 @@ sco:
       delete: Delete
       edit_preset: Edit warnin preset
       empty: Ye huvnae definit onie warnin presets yit.
-      title: Manage warnin presets
     webhooks:
       add_new: Add enpynt
       delete: Delete
@@ -891,8 +889,6 @@ sco:
       new_trending_statuses:
         title: Trendin posts
       new_trending_tags:
-        no_approved_tags: There nae approved trendin hashtags the noo.
-        requirements: 'Onie o thir candidates cuid surpass the #%{rank} approved trendin hashtag, thit''s #%{lowest_tag_name} the noo, wi a score o %{lowest_tag_score}.'
         title: Trendin hashtags
       subject: New trends up fir luikin ower on %{instance}
   aliases:
@@ -913,7 +909,6 @@ sco:
       guide_link: https://crowdin.com/project/mastodon
       guide_link_text: Awbody kin contribute.
     sensitive_content: Sensitive content
-    toot_layout: Post leyoot
   application_mailer:
     notification_preferences: Chynge email preferences
     salutation: "%{name},"
@@ -930,7 +925,6 @@ sco:
     your_token: Yer access token
   auth:
     apply_for_account: Request a accoont
-    change_password: Passwird
     delete_account: Delete accoont
     delete_account_html: If ye'r wantin tae delete yer accoont, ye kin <a href="%{path}">dae it here</a>. Ye'll get asked fir confirmation.
     description:
@@ -972,18 +966,6 @@ sco:
       view_strikes: Luik at past strikes aginst yer accoont
     too_fast: Form submittit ower fast, try again.
     use_security_key: Uise security key
-  authorize_follow:
-    already_following: Ye'r awriddy follaein this accoont
-    already_requested: Ye'v awriddy sent a follae request tae that accoont
-    error: Unfortunately, there wis a error luikin up the remote accoont
-    follow: Follae
-    follow_request: 'Ye hae sent a follae request tae:'
-    following: 'Success! Ye''r noo follaein:'
-    post_follow:
-      close: Or, ye kin juist shut this windae.
-      return: Shaw the uiser's profile
-      web: Gang tae the wab
-    title: Follae %{acct}
   challenge:
     confirm: Continue
     hint_html: "<strong>wee tip:</strong> We wullnae ask ye fir yer passwird again fir the neist oor."
@@ -1292,7 +1274,6 @@ sco:
   notifications:
     email_events: Events fir email notes
     email_events_hint: 'Pick events thit ye''r wantin tae get notes fir:'
-    other_settings: Ither notes settins
   number:
     human:
       decimal_units:
@@ -1425,7 +1406,6 @@ sco:
     import: Import
     import_and_export: Import an export
     migrate: Accoont flittin
-    notifications: Notes
     preferences: Preferences
     profile: Profile
     relationships: Follaes and follaers
@@ -1470,10 +1450,7 @@ sco:
         other: "%{count} votes"
       vote: Vote
     show_more: Shaw mair
-    show_newer: Shaw newer
-    show_older: Shaw aulder
     show_thread: Shaw threid
-    sign_in_to_participate: Sign in fir tae tak pairt in the conversation
     title: '%{name}: "%{quote}"'
     visibilities:
       direct: Direck
@@ -1518,8 +1495,6 @@ sco:
     min_reblogs: Keep posts heezed at least
     min_reblogs_hint: Disnae delete onie o yer posts thit's been heezed at least this nummer o times. Lea blank fir tae delete posts regairdless o their number o heezes
   stream_entries:
-    pinned: Preent post
-    reblogged: heezed
     sensitive_content: Sensitive content
   strikes:
     errors:
@@ -1552,7 +1527,6 @@ sco:
     webauthn: Security keys
   user_mailer:
     appeal_approved:
-      action: Gang tae yer accoont
       explanation: The appeal o the strike agin yer accoont on %{strike_date} thit ye submittit on %{appeal_date} haes been approved. Yer accoont is ance again in guid staunnin.
       subject: Yer appeal fae %{date} haes been approved
       title: Appeal approved
@@ -1561,7 +1535,6 @@ sco:
       subject: Yer appeal fae %{date} haes been rejectit
       title: Appeal rejectit
     backup_ready:
-      explanation: Ye wantit a ful backup o yer Mastodon accoont. It's riddy fir tae doonload noo!
       subject: Yer archive is riddy fir doonload
       title: Archive takoot
     suspicious_sign_in:
@@ -1603,13 +1576,7 @@ sco:
         silence: Accoont limitit
         suspend: Accoont suspendit
     welcome:
-      edit_profile_action: Setup profile
-      edit_profile_step: Ye kin customize yer profile bi uploadin a profile picture, chyngin yer display nemm an mair. Ye kin opt-in fir tae luik ower new follaers afore they’re allooed tae follae ye.
       explanation: Here some tips fir tae get ye stertit
-      final_action: Stert postin
-      final_step: 'Stert postin! Even athout follaers, yer public posts kin stull be seen bi ithers, fir example on the local timeline or in hashtags. Ye mibbie want tae introduce yersel on the #introductions hashtag.'
-      full_handle: Yer ful haunnle
-      full_handle_hint: This is whit ye wad tell yer pals sae thit they kin message or follae ye fae anither server.
       subject: Welcome tae Mastodon, 'mon in
       title: Welcome aboord, %{name}!
   users:

@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 
 import { showAlertForError } from '../../../actions/alerts';
 import { initBlockModal } from '../../../actions/blocks';
-import { initBoostModal } from '../../../actions/boosts';
 import {
   replyCompose,
   mentionCompose,
@@ -36,7 +35,7 @@ const messages = defineMessages({
   deleteConfirm: { id: 'confirmations.delete.confirm', defaultMessage: 'Delete' },
   deleteMessage: { id: 'confirmations.delete.message', defaultMessage: 'Are you sure you want to delete this status?' },
   redraftConfirm: { id: 'confirmations.redraft.confirm', defaultMessage: 'Delete & redraft' },
-  redraftMessage: { id: 'confirmations.redraft.message', defaultMessage: 'Are you sure you want to delete this status and re-draft it? Favourites and boosts will be lost, and replies to the original post will be orphaned.' },
+  redraftMessage: { id: 'confirmations.redraft.message', defaultMessage: 'Are you sure you want to delete this status and re-draft it? Favorites and boosts will be lost, and replies to the original post will be orphaned.' },
   replyConfirm: { id: 'confirmations.reply.confirm', defaultMessage: 'Reply' },
   replyMessage: { id: 'confirmations.reply.message', defaultMessage: 'Replying now will overwrite the message you are currently composing. Are you sure you want to proceed?' },
 });
@@ -56,7 +55,7 @@ const makeMapStateToProps = () => {
 
 const mapDispatchToProps = (dispatch, { intl }) => ({
 
-  onReply (status, router) {
+  onReply (status) {
     dispatch((_, getState) => {
       let state = getState();
       if (state.getIn(['compose', 'text']).trim().length !== 0) {
@@ -65,27 +64,27 @@ const mapDispatchToProps = (dispatch, { intl }) => ({
           modalProps: {
             message: intl.formatMessage(messages.replyMessage),
             confirm: intl.formatMessage(messages.replyConfirm),
-            onConfirm: () => dispatch(replyCompose(status, router)),
+            onConfirm: () => dispatch(replyCompose(status)),
           },
         }));
       } else {
-        dispatch(replyCompose(status, router));
+        dispatch(replyCompose(status));
       }
     });
   },
 
   onModalReblog (status, privacy) {
-    dispatch(reblog(status, privacy));
+    dispatch(reblog({ statusId: status.get('id'), visibility: privacy }));
   },
 
   onReblog (status, e) {
     if (status.get('reblogged')) {
-      dispatch(unreblog(status));
+      dispatch(unreblog({ statusId: status.get('id') }));
     } else {
       if (e.shiftKey || !boostModal) {
         this.onModalReblog(status);
       } else {
-        dispatch(initBoostModal({ status, onReblog: this.onModalReblog }));
+        dispatch(openModal({ modalType: 'BOOST', modalProps: { status, onReblog: this.onModalReblog } }));
       }
     }
   },
@@ -110,33 +109,33 @@ const mapDispatchToProps = (dispatch, { intl }) => ({
     dispatch(openModal({
       modalType: 'EMBED',
       modalProps: {
-        url: status.get('url'),
+        id: status.get('id'),
         onError: error => dispatch(showAlertForError(error)),
       },
     }));
   },
 
-  onDelete (status, history, withRedraft = false) {
+  onDelete (status, withRedraft = false) {
     if (!deleteModal) {
-      dispatch(deleteStatus(status.get('id'), history, withRedraft));
+      dispatch(deleteStatus(status.get('id'), withRedraft));
     } else {
       dispatch(openModal({
         modalType: 'CONFIRM',
         modalProps: {
           message: intl.formatMessage(withRedraft ? messages.redraftMessage : messages.deleteMessage),
           confirm: intl.formatMessage(withRedraft ? messages.redraftConfirm : messages.deleteConfirm),
-          onConfirm: () => dispatch(deleteStatus(status.get('id'), history, withRedraft)),
+          onConfirm: () => dispatch(deleteStatus(status.get('id'), withRedraft)),
         },
       }));
     }
   },
 
-  onDirect (account, router) {
-    dispatch(directCompose(account, router));
+  onDirect (account) {
+    dispatch(directCompose(account));
   },
 
-  onMention (account, router) {
-    dispatch(mentionCompose(account, router));
+  onMention (account) {
+    dispatch(mentionCompose(account));
   },
 
   onOpenMedia (media, index, lang) {

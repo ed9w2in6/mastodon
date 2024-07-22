@@ -5,14 +5,17 @@ import { defineMessages, injectIntl, FormattedMessage } from 'react-intl';
 
 import classNames from 'classnames';
 import { Helmet } from 'react-helmet';
-import { Link } from 'react-router-dom';
 
 import { connect } from 'react-redux';
 
+import CampaignIcon from '@/material-icons/400-24px/campaign.svg?react';
+import HomeIcon from '@/material-icons/400-24px/home-fill.svg?react';
 import { fetchAnnouncements, toggleShowAnnouncements } from 'mastodon/actions/announcements';
 import { IconWithBadge } from 'mastodon/components/icon_with_badge';
 import { NotSignedInIndicator } from 'mastodon/components/not_signed_in_indicator';
 import AnnouncementsContainer from 'mastodon/features/getting_started/containers/announcements_container';
+import { identityContextPropShape, withIdentity } from 'mastodon/identity_context';
+import { criticalUpdatesPending } from 'mastodon/initial_state';
 
 import { addColumn, removeColumn, moveColumn } from '../../actions/columns';
 import { expandHomeTimeline } from '../../actions/timelines';
@@ -20,7 +23,8 @@ import Column from '../../components/column';
 import ColumnHeader from '../../components/column_header';
 import StatusListContainer from '../ui/containers/status_list_container';
 
-import ColumnSettingsContainer from './containers/column_settings_container';
+import { ColumnSettings } from './components/column_settings';
+import { CriticalUpdateBanner } from './components/critical_update_banner';
 
 const messages = defineMessages({
   title: { id: 'column.home', defaultMessage: 'Home' },
@@ -37,12 +41,8 @@ const mapStateToProps = state => ({
 });
 
 class HomeTimeline extends PureComponent {
-
-  static contextTypes = {
-    identity: PropTypes.object,
-  };
-
   static propTypes = {
+    identity: identityContextPropShape,
     dispatch: PropTypes.func.isRequired,
     intl: PropTypes.object.isRequired,
     hasUnread: PropTypes.bool,
@@ -123,9 +123,10 @@ class HomeTimeline extends PureComponent {
   render () {
     const { intl, hasUnread, columnId, multiColumn, hasAnnouncements, unreadAnnouncements, showAnnouncements } = this.props;
     const pinned = !!columnId;
-    const { signedIn } = this.context.identity;
+    const { signedIn } = this.props.identity;
+    const banners = [];
 
-    let announcementsButton = null;
+    let announcementsButton;
 
     if (hasAnnouncements) {
       announcementsButton = (
@@ -136,15 +137,20 @@ class HomeTimeline extends PureComponent {
           aria-label={intl.formatMessage(showAnnouncements ? messages.hide_announcements : messages.show_announcements)}
           onClick={this.handleToggleAnnouncementsClick}
         >
-          <IconWithBadge id='bullhorn' count={unreadAnnouncements} />
+          <IconWithBadge id='bullhorn' icon={CampaignIcon} count={unreadAnnouncements} />
         </button>
       );
+    }
+
+    if (criticalUpdatesPending) {
+      banners.push(<CriticalUpdateBanner key='critical-update-banner' />);
     }
 
     return (
       <Column bindToDocument={!multiColumn} ref={this.setRef} label={intl.formatMessage(messages.title)}>
         <ColumnHeader
           icon='home'
+          iconComponent={HomeIcon}
           active={hasUnread}
           title={intl.formatMessage(messages.title)}
           onPin={this.handlePin}
@@ -155,16 +161,18 @@ class HomeTimeline extends PureComponent {
           extraButton={announcementsButton}
           appendContent={hasAnnouncements && showAnnouncements && <AnnouncementsContainer />}
         >
-          <ColumnSettingsContainer />
+          <ColumnSettings />
         </ColumnHeader>
 
         {signedIn ? (
           <StatusListContainer
+            prepend={banners}
+            alwaysPrepend
             trackScroll={!pinned}
             scrollKey={`home_timeline-${columnId}`}
             onLoadMore={this.handleLoadMore}
             timelineId='home'
-            emptyMessage={<FormattedMessage id='empty_column.home' defaultMessage='Your home timeline is empty! Follow more people to fill it up. {suggestions}' values={{ suggestions: <Link to='/start'><FormattedMessage id='empty_column.home.suggestions' defaultMessage='See some suggestions' /></Link> }} />}
+            emptyMessage={<FormattedMessage id='empty_column.home' defaultMessage='Your home timeline is empty! Follow more people to fill it up.' />}
             bindToDocument={!multiColumn}
           />
         ) : <NotSignedInIndicator />}
@@ -179,4 +187,4 @@ class HomeTimeline extends PureComponent {
 
 }
 
-export default connect(mapStateToProps)(injectIntl(HomeTimeline));
+export default connect(mapStateToProps)(withIdentity(injectIntl(HomeTimeline)));

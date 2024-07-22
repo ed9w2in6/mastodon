@@ -4,14 +4,6 @@ module StatusesHelper
   EMBEDDED_CONTROLLER = 'statuses'
   EMBEDDED_ACTION = 'embed'
 
-  def link_to_newer(url)
-    link_to t('statuses.show_newer'), url, class: 'load-more load-gap'
-  end
-
-  def link_to_older(url)
-    link_to t('statuses.show_older'), url, class: 'load-more load-gap'
-  end
-
   def nothing_here(extra_classes = '')
     content_tag(:div, class: "nothing-here #{extra_classes}") do
       t('accounts.nothing_here')
@@ -63,33 +55,6 @@ module StatusesHelper
 
   def stream_link_target
     embedded_view? ? '_blank' : nil
-  end
-
-  def style_classes(status, is_predecessor, is_successor, include_threads)
-    classes = ['entry']
-    classes << 'entry-predecessor' if is_predecessor
-    classes << 'entry-reblog' if status.reblog?
-    classes << 'entry-successor' if is_successor
-    classes << 'entry-center' if include_threads
-    classes.join(' ')
-  end
-
-  def microformats_classes(status, is_direct_parent, is_direct_child)
-    classes = []
-    classes << 'p-in-reply-to' if is_direct_parent
-    classes << 'p-repost-of' if status.reblog? && is_direct_parent
-    classes << 'p-comment' if is_direct_child
-    classes.join(' ')
-  end
-
-  def microformats_h_class(status, is_predecessor, is_successor, include_threads)
-    if is_predecessor || status.reblog? || is_successor
-      'h-cite'
-    elsif include_threads
-      ''
-    else
-      'h-entry'
-    end
   end
 
   def fa_visibility_icon(status)

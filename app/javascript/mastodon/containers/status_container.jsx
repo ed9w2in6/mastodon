@@ -1,4 +1,4 @@
-import { defineMessages, injectIntl, FormattedMessage } from 'react-intl';
+import { defineMessages, injectIntl } from 'react-intl';
 
 import { connect } from 'react-redux';
 
@@ -8,14 +8,13 @@ import {
 } from '../actions/accounts';
 import { showAlertForError } from '../actions/alerts';
 import { initBlockModal } from '../actions/blocks';
-import { initBoostModal } from '../actions/boosts';
 import {
   replyCompose,
   mentionCompose,
   directCompose,
 } from '../actions/compose';
 import {
-  blockDomain,
+  initDomainBlockModal,
   unblockDomain,
 } from '../actions/domain_blocks';
 import {
@@ -54,7 +53,7 @@ const messages = defineMessages({
   deleteConfirm: { id: 'confirmations.delete.confirm', defaultMessage: 'Delete' },
   deleteMessage: { id: 'confirmations.delete.message', defaultMessage: 'Are you sure you want to delete this status?' },
   redraftConfirm: { id: 'confirmations.redraft.confirm', defaultMessage: 'Delete & redraft' },
-  redraftMessage: { id: 'confirmations.redraft.message', defaultMessage: 'Are you sure you want to delete this status and re-draft it? Favourites and boosts will be lost, and replies to the original post will be orphaned.' },
+  redraftMessage: { id: 'confirmations.redraft.message', defaultMessage: 'Are you sure you want to delete this status and re-draft it? Favorites and boosts will be lost, and replies to the original post will be orphaned.' },
   replyConfirm: { id: 'confirmations.reply.confirm', defaultMessage: 'Reply' },
   replyMessage: { id: 'confirmations.reply.message', defaultMessage: 'Replying now will overwrite the message you are currently composing. Are you sure you want to proceed?' },
   editConfirm: { id: 'confirmations.edit.confirm', defaultMessage: 'Edit' },
@@ -77,7 +76,7 @@ const makeMapStateToProps = () => {
 
 const mapDispatchToProps = (dispatch, { intl, contextType }) => ({
 
-  onReply (status, router) {
+  onReply (status) {
     dispatch((_, getState) => {
       let state = getState();
 
@@ -87,19 +86,19 @@ const mapDispatchToProps = (dispatch, { intl, contextType }) => ({
           modalProps: {
             message: intl.formatMessage(messages.replyMessage),
             confirm: intl.formatMessage(messages.replyConfirm),
-            onConfirm: () => dispatch(replyCompose(status, router)) },
+            onConfirm: () => dispatch(replyCompose(status)) },
         }));
       } else {
-        dispatch(replyCompose(status, router));
+        dispatch(replyCompose(status));
       }
     });
   },
 
   onModalReblog (status, privacy) {
     if (status.get('reblogged')) {
-      dispatch(unreblog(status));
+      dispatch(unreblog({ statusId: status.get('id') }));
     } else {
-      dispatch(reblog(status, privacy));
+      dispatch(reblog({ statusId: status.get('id'), visibility: privacy }));
     }
   },
 
@@ -107,7 +106,7 @@ const mapDispatchToProps = (dispatch, { intl, contextType }) => ({
     if ((e && e.shiftKey) || !boostModal) {
       this.onModalReblog(status);
     } else {
-      dispatch(initBoostModal({ status, onReblog: this.onModalReblog }));
+      dispatch(openModal({ modalType: 'BOOST', modalProps: { status, onReblog: this.onModalReblog } }));
     }
   },
 
@@ -139,28 +138,28 @@ const mapDispatchToProps = (dispatch, { intl, contextType }) => ({
     dispatch(openModal({
       modalType: 'EMBED',
       modalProps: {
-        url: status.get('url'),
+        id: status.get('id'),
         onError: error => dispatch(showAlertForError(error)),
       },
     }));
   },
 
-  onDelete (status, history, withRedraft = false) {
+  onDelete (status, withRedraft = false) {
     if (!deleteModal) {
-      dispatch(deleteStatus(status.get('id'), history, withRedraft));
+      dispatch(deleteStatus(status.get('id'), withRedraft));
     } else {
       dispatch(openModal({
         modalType: 'CONFIRM',
         modalProps: {
           message: intl.formatMessage(withRedraft ? messages.redraftMessage : messages.deleteMessage),
           confirm: intl.formatMessage(withRedraft ? messages.redraftConfirm : messages.deleteConfirm),
-          onConfirm: () => dispatch(deleteStatus(status.get('id'), history, withRedraft)),
+          onConfirm: () => dispatch(deleteStatus(status.get('id'), withRedraft)),
         },
       }));
     }
   },
 
-  onEdit (status, history) {
+  onEdit (status) {
     dispatch((_, getState) => {
       let state = getState();
       if (state.getIn(['compose', 'text']).trim().length !== 0) {
@@ -169,29 +168,29 @@ const mapDispatchToProps = (dispatch, { intl, contextType }) => ({
           modalProps: {
             message: intl.formatMessage(messages.editMessage),
             confirm: intl.formatMessage(messages.editConfirm),
-            onConfirm: () => dispatch(editStatus(status.get('id'), history)),
+            onConfirm: () => dispatch(editStatus(status.get('id'))),
           },
         }));
       } else {
-        dispatch(editStatus(status.get('id'), history));
+        dispatch(editStatus(status.get('id')));
       }
     });
   },
 
   onTranslate (status) {
     if (status.get('translation')) {
-      dispatch(undoStatusTranslation(status.get('id')));
+      dispatch(undoStatusTranslation(status.get('id'), status.get('poll')));
     } else {
       dispatch(translateStatus(status.get('id')));
     }
   },
 
-  onDirect (account, router) {
-    dispatch(directCompose(account, router));
+  onDirect (account) {
+    dispatch(directCompose(account));
   },
 
-  onMention (account, router) {
-    dispatch(mentionCompose(account, router));
+  onMention (account) {
+    dispatch(mentionCompose(account));
   },
 
   onOpenMedia (statusId, media, index, lang) {
@@ -253,15 +252,8 @@ const mapDispatchToProps = (dispatch, { intl, contextType }) => ({
     dispatch(toggleStatusCollapse(status.get('id'), isCollapsed));
   },
 
-  onBlockDomain (domain) {
-    dispatch(openModal({
-      modalType: 'CONFIRM',
-      modalProps: {
-        message: <FormattedMessage id='confirmations.domain_block.message' defaultMessage='Are you really, really sure you want to block the entire {domain}? In most cases a few targeted blocks or mutes are sufficient and preferable. You will not see content from that domain in any public timelines or your notifications. Your followers from that domain will be removed.' values={{ domain: <strong>{domain}</strong> }} />,
-        confirm: intl.formatMessage(messages.blockDomainConfirm),
-        onConfirm: () => dispatch(blockDomain(domain)),
-      },
-    }));
+  onBlockDomain (account) {
+    dispatch(initDomainBlockModal(account));
   },
 
   onUnblockDomain (domain) {
@@ -269,7 +261,7 @@ const mapDispatchToProps = (dispatch, { intl, contextType }) => ({
   },
 
   deployPictureInPicture (status, type, mediaProps) {
-    dispatch(deployPictureInPicture(status.get('id'), status.getIn(['account', 'id']), type, mediaProps));
+    dispatch(deployPictureInPicture({statusId: status.get('id'), accountId: status.getIn(['account', 'id']), playerType: type, props: mediaProps}));
   },
 
   onInteractionModal (type, status) {
@@ -278,7 +270,7 @@ const mapDispatchToProps = (dispatch, { intl, contextType }) => ({
       modalProps: {
         type,
         accountId: status.getIn(['account', 'id']),
-        url: status.get('url'),
+        url: status.get('uri'),
       },
     }));
   },
